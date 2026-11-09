@@ -1,0 +1,1338 @@
+
+
+
+
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Dmitry">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>СУПР</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<style>
+  :root { --bg:#0b0d0c; --card:#151917; --line:#252b28; --text:#e8efe9; --dim:#8a958e;
+          --green:#3ddc84; --red:#ff5a4f; --yellow:#f5c542; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  .wrap { max-width:1060px; margin:0 auto; padding:20px 16px 40px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .logo { font-size:44px; font-weight:800; letter-spacing:10px; color:var(--green);
+          text-shadow:0 0 12px rgba(61,220,132,.7), 0 0 28px rgba(61,220,132,.35); }
+  .logo.off { color:#2a3a31; text-shadow:none; }
+  .logo.zel { color:var(--green); text-shadow:0 0 12px rgba(61,220,132,.7), 0 0 28px rgba(61,220,132,.35); }
+  .logo.zholty { color:var(--yellow); text-shadow:0 0 12px rgba(245,197,66,.7), 0 0 28px rgba(245,197,66,.35); }
+  .logo.krasny { color:var(--red); text-shadow:0 0 12px rgba(255,90,79,.7), 0 0 28px rgba(255,90,79,.35); }
+  .logo.siny { color:#7cc7ff; text-shadow:0 0 12px rgba(124,199,255,.7), 0 0 28px rgba(124,199,255,.35); }
+  .sub { color:var(--dim); font-size:13px; margin-top:2px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:10px;
+           padding:9px 14px; font-size:15px; cursor:pointer; }
+  button.main { background:var(--green); color:#04140a; border:none; font-weight:700; }
+  button:disabled { opacity:.4; cursor:default; }
+  input, select { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px;
+                  padding:9px 10px; font-size:15px; width:100%; }
+  input:disabled { opacity:.5; }
+  label { display:block; font-size:13px; color:var(--dim); margin:10px 0 4px; }
+  .status { margin:14px 0 4px; font-size:14px; color:var(--dim); }
+  .status b { color:var(--text); }
+  .msg { margin:0 0 16px; font-size:14px; color:var(--green); min-height:20px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .card h3 { margin:0 0 8px; font-size:14px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0;
+         border-bottom:1px solid var(--line); font-size:15px; }
+  .row:last-child { border-bottom:none; }
+  .pill { padding:2px 10px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; }
+  .on { background:rgba(61,220,132,.15); color:var(--green); }
+  .off2 { background:#202623; color:var(--dim); }
+  .big { font-size:34px; font-weight:700; }
+  .note { font-size:13px; color:var(--dim); margin-top:2px; }
+  .set { display:none; margin-top:12px; border-top:1px solid var(--line); padding-top:4px; }
+  .set.open { display:block; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .hidden { display:none !important; }
+  .auth { max-width:380px; margin:60px auto 0; }
+  .tabs { display:flex; gap:6px; margin:24px 0 6px; }
+  .tabs button { flex:1; }
+  .tabs button.act { border-color:var(--green); color:var(--green); }
+  .err { color:var(--red); font-size:14px; min-height:20px; margin-top:10px; }
+
+  /* ===== вкладки главного экрана: Горшки / Графики ===== */
+  .vkladki { display:flex; gap:6px; margin:18px 0 6px; }
+  .vkladki button { flex:1; padding:10px; }
+  .vkladki button.act { border-color:var(--green); color:var(--green); }
+
+  /* ===== графики ===== */
+  .per { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .per button { padding:7px 12px; font-size:14px; }
+  .per button.act { border-color:var(--green); color:var(--green); }
+  .graf svg { width:100%; height:auto; display:block; }
+  .legend { display:flex; gap:14px; font-size:13px; color:var(--dim); margin-top:8px; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:5px; margin-right:5px; }
+  .svoy { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px; }
+
+  /* ===== карточка горшка: растение и круг влажности ===== */
+  .potTop { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .plant { width:150px; height:170px; flex:none; overflow:visible; }
+  .ring { width:118px; height:118px; flex:none; }
+  .ring .arc { transition:stroke-dasharray 1s ease, stroke 1s; }
+  .sost { font-size:16px; font-weight:600; margin-top:6px; }
+
+  /* ===== анимированное растение ===== */
+  .plant .leaf, .plant .arm, .plant .head, .plant .top { transform-box:fill-box; transition:transform 1.4s ease; }
+  .plant .L { transform-origin:right center; }
+  .plant .R { transform-origin:left center; }
+  .plant .head, .plant .top { transform-origin:center bottom; }
+  .plant .leaf, .plant .arm, .plant .body { fill:var(--c); transition:fill 1.4s; }
+  .plant .vein { stroke:var(--v); stroke-width:1.2; fill:none; transition:stroke 1.4s; }
+  .plant .stem { stroke:var(--c); transition:stroke 1.4s; }
+  .plant .pet { fill:var(--pet); transition:fill 1.4s; }
+  .plant .soil { fill:var(--soil); transition:fill 1.4s; }
+  .plant .crack, .plant .blush, .plant .sweat, .plant .fall, .plant .zz, .plant .drop,
+  .plant .m-happy, .plant .m-flat, .plant .m-sad, .plant .e-closed, .plant .bud { opacity:0; transition:opacity .8s; }
+  .plant .e-open { transition:opacity .8s; }
+  .plant .fall, .plant .sweat, .plant .zz, .plant .drop { transform-box:fill-box; transform-origin:center; }
+
+  .happy   { --c:#3ddc84; --v:#1f9a57; --pet:#ff8fc7; --soil:#4a2e1c; }
+  .thirsty { --c:#f5c542; --v:#b98d1c; --pet:#e8c07a; --soil:#6b4a33; }
+  .dry     { --c:#ff5a4f; --v:#b3352d; --pet:#8a5a44; --soil:#8d6e57; }
+  .unknown { --c:#3a423e; --v:#2a302d; --pet:#3a423e; --soil:#3a2a20; }
+
+  /* весело: листья машут, каждый в свой момент, растение покачивается */
+  .happy .top { animation:kach 4s ease-in-out infinite; }
+  .happy .L { animation:mahL 2.2s ease-in-out infinite; animation-delay:var(--d); }
+  .happy .R { animation:mahR 2.2s ease-in-out infinite; animation-delay:var(--d); }
+  .happy .head { animation:kivok 3s ease-in-out infinite; }
+  .happy .m-happy, .happy .blush, .happy .bud { opacity:1; }
+  @keyframes kach  { 0%,100% { transform:rotate(-2deg); } 50% { transform:rotate(2deg); } }
+  @keyframes mahL  { 0%,100% { transform:rotate(12deg); } 50% { transform:rotate(-8deg); } }
+  @keyframes mahR  { 0%,100% { transform:rotate(-12deg); } 50% { transform:rotate(8deg); } }
+  @keyframes kivok { 0%,100% { transform:rotate(-7deg); } 50% { transform:rotate(7deg); } }
+
+  /* хочет пить: листья опущены и устало покачиваются */
+  .thirsty .L { animation:ustalL 3.5s ease-in-out infinite; animation-delay:var(--d); }
+  .thirsty .R { animation:ustalR 3.5s ease-in-out infinite; animation-delay:var(--d); }
+  .thirsty .head { transform:rotate(35deg); }
+  .thirsty .top { transform:rotate(4deg); }
+  .thirsty .m-flat { opacity:1; }
+  @keyframes ustalL { 0%,100% { transform:rotate(-32deg); } 50% { transform:rotate(-40deg); } }
+  @keyframes ustalR { 0%,100% { transform:rotate(32deg); } 50% { transform:rotate(40deg); } }
+
+  /* засыхает: листья повисли, один падает, земля потрескалась */
+  .dry .L { transform:rotate(-78deg) scale(.8); }
+  .dry .R { transform:rotate(78deg) scale(.8); }
+  .dry .head { transform:rotate(95deg) scale(.8); }
+  .dry .top { transform:rotate(12deg); }
+  .dry .m-sad, .dry .crack { opacity:1; }
+  .dry .sweat { animation:pot 2s ease-in infinite; }
+  .dry .fall { animation:padaet 4.5s ease-in infinite; }
+  @keyframes pot { 0% { opacity:0; transform:translateY(0); } 20% { opacity:1; } 100% { opacity:0; transform:translateY(12px); } }
+  @keyframes padaet { 0% { opacity:0; transform:translate(0,0) rotate(0deg); } 10% { opacity:1; }
+                      80% { opacity:1; transform:translate(-26px,46px) rotate(160deg); } 100% { opacity:0; transform:translate(-30px,52px) rotate(180deg); } }
+
+  /* нет данных: спит */
+  .unknown .e-open { opacity:0; }
+  .unknown .e-closed, .unknown .m-flat { opacity:1; }
+  .unknown .zz { animation:spit 3s ease-in-out infinite; }
+  @keyframes spit { 0% { opacity:0; transform:translate(0,0); } 30% { opacity:1; } 100% { opacity:0; transform:translate(8px,-18px); } }
+
+  /* идет полив: сверху падают капли */
+  .water .drop { animation:kaplya 1s linear infinite; animation-delay:var(--d); }
+  .water .soil { fill:#2c1a10; }
+  @keyframes kaplya { 0% { opacity:0; transform:translateY(0); } 15% { opacity:1; } 100% { opacity:0; transform:translateY(105px); } }
+
+  /* ===== лампа досветки над горшком: горит синхронно с реальной ===== */
+  .lampTop { height:46px; margin:-4px 0 2px; }
+  .lampTop svg { display:block; margin-left:56px; }
+  .lampTop .provod { stroke:#3a423e; stroke-width:2; }
+  .lampTop .plafon { fill:#252b28; stroke:#3a423e; stroke-width:1.5; }
+  .lampTop .kolba { fill:#202623; transition:fill .6s; }
+  .lampTop .luchi { stroke:#ffd34d; stroke-width:2; stroke-linecap:round; opacity:0; transition:opacity .6s; }
+  .lampTop .halo { fill:#ffd34d; opacity:0; transition:opacity .6s; }
+  .lampTop.on .kolba { fill:#ffd34d; }
+  .lampTop.on .luchi, .lampTop.on .halo { opacity:1; }
+  .lampTop.on svg { filter:drop-shadow(0 0 9px rgba(255,211,77,.85)); }
+
+  /* тревога: логотип пульсирует, когда полив сломан или в баке нет воды */
+  .logo.krasny, .logo.siny { animation: trevoga 1.8s ease-in-out infinite; }
+  @keyframes trevoga { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.7); } }
+
+  /* ссылка "забыли пароль" и точка качества связи */
+  .ssylka { color:var(--green); font-size:14px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:5px; margin-right:6px; }
+
+  /* журнал событий */
+  .sobytie { display:flex; justify-content:space-between; gap:10px; padding:6px 0;
+             border-bottom:1px solid var(--line); font-size:14px; }
+  .sobytie:last-child { border-bottom:none; }
+
+  /* подсказка на графике */
+  .graf { position:relative; }
+  .tul { position:absolute; pointer-events:none; background:#050706; border:1px solid var(--line);
+         border-radius:8px; padding:6px 9px; font-size:12.5px; color:var(--text);
+         white-space:nowrap; z-index:2; transform:translate(-50%,0); }
+  .tul i { display:inline-block; width:8px; height:8px; border-radius:4px; margin-right:5px; }
+</style>
+</head>
+<body>
+
+<!-- ===== Экран входа и регистрации ===== -->
+<div class="wrap auth" id="scrAuth">
+  <div class="logo">СУПР</div>
+  <div class="sub">система умного полива растений</div>
+  <div class="tabs">
+    <button id="tVhod" class="act">Вход</button>
+    <button id="tReg">Регистрация</button>
+  </div>
+  <div id="polImya" class="hidden"><label>Имя</label><input id="inImya" autocomplete="name"></div>
+  <label>Почта</label><input id="inPochta" type="email" autocomplete="email">
+  <label>Пароль (не меньше 6 знаков)</label><input id="inParol" type="password" autocomplete="current-password">
+  <div style="margin-top:16px"><button class="main" id="bVoiti" style="width:100%">Войти</button></div>
+  <div class="err" id="errAuth"></div>
+  <div style="margin-top:8px"><a href="#" class="ssylka" id="zabil">Забыли пароль?</a></div>
+</div>
+
+<!-- ===== Главный экран ===== -->
+<div class="wrap hidden" id="scrMain">
+  <header>
+    <div>
+      <div class="logo off" id="logo">СУПР</div>
+      <div class="sub" id="prichina"></div>
+      <div class="sub" id="ktoVoshel"></div>
+    </div>
+    <div class="btns">
+      <button class="main" id="bConnect">Подключить СУПР</button>
+      <button id="bDemo">Демо</button>
+      <button id="bVyiti">Выйти</button>
+    </div>
+  </header>
+
+  <div class="status" id="status">Не подключено. Нажмите «Подключить СУПР» и выберите HC-06.</div>
+  <div class="msg" id="msg"></div>
+
+  <div class="vkladki">
+    <button id="tabPots" class="act">Горшки</button>
+    <button id="tabGrafik">Графики</button>
+  </div>
+
+  <div id="vidPots">
+  <div class="grid" id="pots"></div>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="card">
+      <h3>Воздух и свет</h3>
+      <div class="row"><span>Температура</span><b id="vT">—</b></div>
+      <div class="row"><span>Влажность воздуха</span><b id="vH">—</b></div>
+      <div class="row"><span>Свет</span><b id="vL">—</b></div>
+      <div class="row"><span>Вода в баке</span><b id="vBak">—</b></div>
+      <div class="row"><span>Время СУПР</span><b id="vTime">—</b></div>
+      <div class="row"><span>Лампа 1</span><span class="pill off2" id="vLamp1">выкл</span></div>
+      <div class="row"><span>Лампа 2</span><span class="pill off2" id="vLamp2">выкл</span></div>
+      <div class="row"><span>Лампа 3</span><span class="pill off2" id="vLamp3">выкл</span></div>
+    </div>
+
+    <!-- пауза после полива: доступна любому пользователю -->
+    <div class="card" id="pauzaCard">
+      <h3>Пауза после полива</h3>
+      <div class="note" style="margin-bottom:8px">После полива клапан горшка не откроется снова, пока не пройдет пауза: вода успевает впитаться.</div>
+      <label>Пауза, минут</label>
+      <input id="uPauza" type="number" min="1" max="240">
+      <div style="margin-top:12px"><button class="main" id="bPauza">Сохранить паузу</button></div>
+    </div>
+
+    <!-- только для админа -->
+    <div class="card hidden" id="adminCard">
+      <h3>Админ</h3>
+      <div id="klapany"></div>
+      <div class="two">
+        <div><label>День с (час)</label><input id="aUtro" type="number" min="0" max="23"></div>
+        <div><label>День до (час, 24 = полночь)</label><input id="aVecher" type="number" min="1" max="24"></div>
+        <div><label>Полив, секунд</label><input id="aPoliv" type="number" min="1" max="60"></div>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <div><label>Бак, литров (для прогноза)</label><input id="aBak" type="number" min="0" max="999" step="0.5"></div>
+        <div><label>Вода за один полив, л</label><input id="aRashod" type="number" min="0.01" max="10" step="0.01"></div>
+      </div>
+      <div style="margin-top:12px"><button class="main" id="bNastr">Сохранить настройки</button></div>
+      <h3 style="margin-top:18px">Пользователи</h3>
+      <div id="lyudi"></div>
+    </div>
+  </div>
+
+  <!-- журнал событий: поливы, пустой бак, поломки -->
+  <div class="card">
+    <h3>Журнал событий</h3>
+    <div id="zhurnal"><div class="note">Загружаю...</div></div>
+  </div>
+  </div>
+
+  <!-- вкладка Графики: история показаний из Supabase -->
+  <div id="vidGrafik" class="hidden">
+    <div class="card">
+      <h3>История показаний</h3>
+      <div class="per" id="periody">
+        <button data-per="hour" class="act">Час</button>
+        <button data-per="day">День</button>
+        <button data-per="week">Неделя</button>
+        <button data-per="month">Месяц</button>
+        <button data-per="own">Свой</button>
+      </div>
+      <div class="svoy hidden" id="svoyBlock">
+        <div><label>С</label><input type="datetime-local" id="gOt"></div>
+        <div><label>По</label><input type="datetime-local" id="gDo"></div>
+        <button class="main" id="bGrafik">Показать</button>
+      </div>
+      <div class="per" id="metriki">
+        <button data-met="wet" class="act">Влажность</button>
+        <button data-met="temp">Температура</button>
+        <button data-met="lux">Свет</button>
+        <button id="bCsv" title="Скачать данные графика файлом CSV">⬇ CSV</button>
+      </div>
+      <div class="graf" id="grafBox"></div>
+      <div class="legend" id="legenda"></div>
+      <div class="note" style="margin-top:8px">Показания пишутся в базу раз в 5 минут, пока страница открыта и подключена к СУПР. Свой промежуток: укажите даты и нажмите «Показать».</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 1. Подключение к Supabase: адрес и ПУБЛИЧНЫЙ ключ =====
+// Ключ sb_secret_... сюда НИКОГДА не вставлять!
+const SUPABASE_URL = 'https://vmhxvghjryevoxvzyidz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_TnnBLNlDioz7ck55hq0NmQ_9U_iLPJA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===== 2. Виды растений: пороги влажности, картинка и норма света по умолчанию =====
+// Норма света в свтч (1000 лк x 1 час). 15 свтч = примерно 1 моль света на м2 в сутки.
+// Сколько нужно растениям (моль в сутки): папоротник 2-4, фикус 3-5, фиалка 5-8, кактус 8-12, базилик 12-17.
+const VIDY = {
+  decor:  { name: 'Декоративные: фикус, монстера',  min: 35, max: 60, pic: 'sprout', svet: 60 },
+  succ:   { name: 'Кактусы и суккуленты',            min: 15, max: 35, pic: 'cactus', svet: 150 },
+  flower: { name: 'Цветущие: фиалка, герань',        min: 40, max: 65, pic: 'flower', svet: 90 },
+  fern:   { name: 'Влаголюбивые: папоротник',        min: 50, max: 75, pic: 'sprout', svet: 45 },
+  herb:   { name: 'Зелень: базилик, салат',          min: 45, max: 70, pic: 'sprout', svet: 180 },
+  custom: { name: 'Свои пороги',                     min: null, max: null, pic: null, svet: null }
+};
+// сколько горшок набрал света сегодня (свтч, с десятыми) и горит ли его лампа
+let doza = [null, null, null];
+let lampi = [0, 0, 0];
+// сколько поливов подряд горшок остался сухим (поломка от 3) и вода в баке: 1 есть, 0 нет
+let neudachi = [0, 0, 0];
+let urovenBaka = -1;
+// журнал: последние события из Supabase (для ленты, меток на графике и прогноза бака)
+let sobyltiya = [];
+// точки графика без усреднения (для CSV) и контекст последнего графика (для подсказки)
+let polnyeTochki = [], grafKontekst = null;
+const KARTINKI = { sprout: 'Росток', flower: 'Цветок', cactus: 'Кактус' };
+
+// ===== 3. Что страница знает =====
+let profil = null;              // мой профиль: имя и роль
+let gorshki = [];               // 3 горшка из Supabase
+let nastroiki = null;           // общие настройки из Supabase
+let pokazaniya = [-1, -1, -1];  // влажность горшков от Uno, -1 = нет данных
+let klapanOtkr = [0, 0, 0];     // какой клапан сейчас открыт
+let rezhimReg = false;          // экран регистрации или входа
+
+const $ = id => document.getElementById(id);
+
+function soobshenie(tekst) {
+  const d = new Date();
+  $('msg').textContent = String(d.getHours()).padStart(2, '0') + ':' +
+                         String(d.getMinutes()).padStart(2, '0') + '  ' + tekst;
+}
+
+// ===== 4. Вход и регистрация =====
+function pokazatReg(da) {
+  rezhimReg = da;
+  $('tReg').classList.toggle('act', da);
+  $('tVhod').classList.toggle('act', !da);
+  $('polImya').classList.toggle('hidden', !da);
+  $('bVoiti').textContent = da ? 'Создать аккаунт' : 'Войти';
+  $('errAuth').textContent = '';
+  $('errAuth').style.color = '';
+}
+
+function perevodOshibki(t) {
+  if (/Invalid login/i.test(t)) return 'Неверная почта или пароль';
+  if (/already registered/i.test(t)) return 'Такая почта уже зарегистрирована';
+  if (/at least 6/i.test(t)) return 'Пароль должен быть не короче 6 знаков';
+  if (/Email not confirmed/i.test(t)) return 'Почта не подтверждена: откройте письмо от Supabase';
+  return t;
+}
+
+async function voitiIliZaregistrirovat() {
+  const pochta = $('inPochta').value.trim(), parol = $('inParol').value;
+  $('errAuth').textContent = '';
+  if (rezhimReg) {
+    const imya = $('inImya').value.trim();
+    if (!imya) { $('errAuth').textContent = 'Введите имя'; return; }
+    const { data, error } = await sb.auth.signUp({ email: pochta, password: parol, options: { data: { name: imya } } });
+    if (error) { $('errAuth').textContent = perevodOshibki(error.message); return; }
+    if (!data.session) $('errAuth').textContent = 'Аккаунт создан. Подтвердите почту по письму и войдите.';
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email: pochta, password: parol });
+    if (error) $('errAuth').textContent = perevodOshibki(error.message);
+  }
+}
+
+// забыли пароль: письмо для сброса уйдет на почту из поля выше
+async function zabytParol() {
+  const pochta = $('inPochta').value.trim();
+  if (!pochta) { $('errAuth').textContent = 'Введите почту в поле выше - пришлю письмо для сброса'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(pochta);
+  $('errAuth').style.color = error ? 'var(--red)' : 'var(--green)';
+  $('errAuth').textContent = error ? perevodOshibki(error.message) : 'Письмо для сброса пароля отправлено на ' + pochta;
+}
+
+// Supabase сам сообщает, вошли мы или вышли
+sb.auth.onAuthStateChange((sobytie, sessiya) => {
+  setTimeout(() => sessiya ? voshel(sessiya.user) : vyshel(), 0);
+});
+
+async function voshel(user) {
+  const p = await sb.from('profiles').select('*').eq('id', user.id).single();
+  const g = await sb.from('pots').select('*').order('id');
+  const n = await sb.from('settings').select('*').eq('id', 1).single();
+  if (g.error || n.error) { $('errAuth').textContent = 'Не удалось загрузить данные: ' + (g.error || n.error).message; return; }
+  profil = p.data || { name: user.email, role: 'user' };
+  gorshki = g.data;
+  nastroiki = n.data;
+  $('scrAuth').classList.add('hidden');
+  $('scrMain').classList.remove('hidden');
+  $('ktoVoshel').textContent = (profil.name || user.email) + (profil.role === 'admin' ? ' · админ' : '');
+  postroitGorshki();
+  $('uPauza').value = nastroiki.pauza_min;
+  zagruzitZhurnal();
+  if (profil.role === 'admin') pokazatAdmina(); else $('adminCard').classList.add('hidden');
+}
+
+function vyshel() {
+  profil = null;
+  $('scrMain').classList.add('hidden');
+  $('scrAuth').classList.remove('hidden');
+}
+
+// ===== 5. Картинка растения: росток, цветок или кактус, на горшке - лицо =====
+function rastenie(pic) {
+  // горшок, земля, трещины и лицо
+  const gorshok = `
+    <path d="M44 140 L116 140 L108 176 L52 176 Z" fill="#9c5530"/>
+    <rect x="38" y="128" width="84" height="14" rx="5" fill="#b8673a"/>
+    <ellipse class="soil" cx="80" cy="130" rx="38" ry="4"/>
+    <path class="crack" d="M58 130 l6 2 l-3 1 M92 129 l7 2 l-4 2" stroke="#3b2618" stroke-width="1.2" fill="none"/>
+    <circle class="e-open" cx="69" cy="153" r="3.3" fill="#2b1a10"/>
+    <circle class="e-open" cx="91" cy="153" r="3.3" fill="#2b1a10"/>
+    <path class="e-closed" d="M65 154 h8 M87 154 h8" stroke="#2b1a10" stroke-width="2" stroke-linecap="round"/>
+    <circle class="blush" cx="62" cy="160" r="3.5" fill="#ff8fa3" opacity=".7"/>
+    <circle class="blush" cx="98" cy="160" r="3.5" fill="#ff8fa3" opacity=".7"/>
+    <path class="m-happy" d="M71 161 Q80 169 89 161" stroke="#2b1a10" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path class="m-flat"  d="M72 164 L88 164" stroke="#2b1a10" stroke-width="2.2" stroke-linecap="round"/>
+    <path class="m-sad"   d="M71 167 Q80 159 89 167" stroke="#2b1a10" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path class="sweat" d="M100 146 q3 5 0 7 q-3 -2 0 -7 Z" fill="#7cc7ff"/>
+    <text class="zz" x="104" y="122" font-size="14" font-weight="700" fill="#8a958e">z</text>`;
+  // капли воды для полива
+  const kapli = `
+    <circle class="drop" cx="68" cy="8" r="3" fill="#7cc7ff" style="--d:0s"/>
+    <circle class="drop" cx="80" cy="4" r="3" fill="#7cc7ff" style="--d:.35s"/>
+    <circle class="drop" cx="92" cy="10" r="3" fill="#7cc7ff" style="--d:.7s"/>`;
+  // лист: левый смотрит влево, правый - вправо; --d - задержка, чтобы листья махали не хором
+  const list = (side, x, y, d) => side === 'L'
+    ? `<g class="leaf L" style="--d:${d}s"><path d="M${x} ${y} C${x-14} ${y-14} ${x-32} ${y-10} ${x-40} ${y-3} C${x-30} ${y+7} ${x-12} ${y+8} ${x} ${y} Z"/>
+         <path class="vein" d="M${x} ${y} C${x-14} ${y-3} ${x-26} ${y-4} ${x-36} ${y-3}"/></g>`
+    : `<g class="leaf R" style="--d:${d}s"><path d="M${x} ${y} C${x+14} ${y-14} ${x+32} ${y-10} ${x+40} ${y-3} C${x+30} ${y+7} ${x+12} ${y+8} ${x} ${y} Z"/>
+         <path class="vein" d="M${x} ${y} C${x+14} ${y-3} ${x+26} ${y-4} ${x+36} ${y-3}"/></g>`;
+  const padaet = `<path class="fall" d="M104 96 c6 -6 14 -4 16 0 c-4 5 -11 6 -16 0 Z" fill="#c9533f"/>`;
+
+  let verh;
+  if (pic === 'cactus') {
+    let kolyuchki = '';
+    [[72, 70], [88, 82], [74, 98], [86, 112], [78, 122]].forEach(([x, y]) =>
+      kolyuchki += `<path d="M${x} ${y} l-3 -2 M${x} ${y} l3 -2" stroke="#e8efe9" stroke-width="1" opacity=".7"/>`);
+    verh = `<g class="top">
+      <g class="arm L" style="--d:0s"><path d="M66 100 H54 a8 8 0 0 1 -8 -8 V74 a7 7 0 0 1 14 0 V86 H66 Z"/></g>
+      <g class="arm R" style="--d:.5s"><path d="M94 90 H106 a8 8 0 0 0 8 -8 V62 a7 7 0 0 0 -14 0 V76 H94 Z"/></g>
+      <rect class="body" x="64" y="50" width="32" height="82" rx="16"/>${kolyuchki}
+      <circle class="bud" cx="80" cy="48" r="7" fill="#ff8fc7"/></g>`;
+  } else if (pic === 'flower') {
+    let lepestki = '';
+    for (let i = 0; i < 7; i++) {
+      const a = i * 2 * Math.PI / 7;
+      lepestki += `<ellipse class="pet" cx="${80 + 12 * Math.cos(a)}" cy="${44 + 12 * Math.sin(a)}" rx="9" ry="7"
+                    transform="rotate(${i * 360 / 7} ${80 + 12 * Math.cos(a)} ${44 + 12 * Math.sin(a)})"/>`;
+    }
+    verh = `<g class="top">
+      <path class="stem" d="M80 130 C78 108 82 84 80 56" stroke-width="5" fill="none" stroke-linecap="round"/>
+      ${list('L', 79, 108, 0)}${list('R', 81, 92, .6)}
+      <g class="head">${lepestki}<circle cx="80" cy="44" r="8" fill="#ffd34d"/></g></g>`;
+  } else {
+    verh = `<g class="top">
+      <path class="stem" d="M80 130 C80 110 80 86 80 60" stroke-width="5" fill="none" stroke-linecap="round"/>
+      ${list('L', 79, 114, 0)}${list('R', 81, 104, .4)}${list('L', 79, 88, .8)}${list('R', 81, 76, 1.2)}
+      <g class="leaf R" style="--d:1.6s"><path d="M80 62 C82 48 92 40 101 40 C100 52 90 60 80 62 Z"/></g></g>`;
+  }
+  return `<svg class="plant unknown" data-pic="${pic}" viewBox="0 0 160 180">${kapli}${verh}${padaet}${gorshok}</svg>`;
+}
+
+// круг влажности: дуга до текущего процента, черточка - порог полива
+function krug(p, min, sost) {
+  const r = 48, dl = 2 * Math.PI * r;
+  const cvet = { happy: '#3ddc84', thirsty: '#f5c542', dry: '#ff5a4f', unknown: '#3a423e' }[sost];
+  const ug = (min / 100) * 2 * Math.PI - Math.PI / 2;
+  const x1 = 59 + 40 * Math.cos(ug), y1 = 59 + 40 * Math.sin(ug);
+  const x2 = 59 + 56 * Math.cos(ug), y2 = 59 + 56 * Math.sin(ug);
+  return `<svg class="ring" viewBox="0 0 118 118">
+    <circle cx="59" cy="59" r="${r}" fill="none" stroke="#252b28" stroke-width="10"/>
+    <circle class="arc" cx="59" cy="59" r="${r}" fill="none" stroke="${cvet}" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="${p >= 0 ? dl * p / 100 : 0} ${dl}" transform="rotate(-90 59 59)"/>
+    <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#e8efe9" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="59" y="62" text-anchor="middle" font-size="26" font-weight="700" fill="#e8efe9">${p >= 0 ? p + '%' : '—'}</text>
+    <text x="59" y="80" text-anchor="middle" font-size="11" fill="#8a958e">порог ${min}%</text>
+  </svg>`;
+}
+
+// зеленое: воды хватает, желтое: хочет пить, красное: засыхает
+function sostoyanie(p, min) {
+  if (p < 0) return 'unknown';
+  if (p >= min) return 'happy';
+  if (p >= min / 2) return 'thirsty';
+  return 'dry';
+}
+const TEKST = { unknown: 'нет данных от датчика', happy: 'всё хорошо, воды хватает',
+                thirsty: 'хочет пить', dry: 'засыхает! нужен полив' };
+const CVET = { unknown: '#8a958e', happy: '#3ddc84', thirsty: '#f5c542', dry: '#ff5a4f' };
+
+// лампа досветки над горшком: шнур, плафон, колба; класс .on зажигает свет
+function lampka() {
+  return `<svg width="56" height="44" viewBox="0 0 56 44">
+    <line class="provod" x1="28" y1="0" x2="28" y2="8"/>
+    <path class="plafon" d="M14 20 Q28 6 42 20 L42 24 H14 Z"/>
+    <circle class="halo" cx="28" cy="30" r="12"/>
+    <circle class="kolba" cx="28" cy="30" r="6"/>
+    <g class="luchi">
+      <line x1="28" y1="40" x2="28" y2="43"/>
+      <line x1="17" y1="36" x2="15" y2="38"/>
+      <line x1="39" y1="36" x2="41" y2="38"/>
+      <line x1="14" y1="28" x2="11" y2="28"/>
+      <line x1="42" y1="28" x2="45" y2="28"/>
+    </g>
+  </svg>`;
+}
+
+// ===== 6. Карточки горшков: строим один раз, потом только обновляем =====
+function postroitGorshki() {
+  const g = $('pots');
+  g.innerHTML = '';
+  gorshki.forEach((pt, i) => {
+    let vidy = '', kart = '';
+    for (const k in VIDY) vidy += `<option value="${k}">${VIDY[k].name}</option>`;
+    for (const k in KARTINKI) kart += `<option value="${k}">${KARTINKI[k]}</option>`;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <h3 id="nazv${i}"></h3>
+      <div class="lampTop" id="lamp${i}">${lampka()}</div>
+      <div class="potTop">
+        <div id="plant${i}">${rastenie(pt.picture)}</div>
+        <div id="krug${i}"></div>
+      </div>
+      <div class="sost" id="txt${i}"></div>
+      <div class="note" id="sv${i}"></div>
+      <div class="note" id="vid${i}"></div>
+      <div class="note" id="kl${i}"></div>
+      <div class="btns" style="margin-top:10px">
+        <button class="main" id="bPol${i}" disabled>💧 Полить</button>
+        <button id="bSek${i}" disabled>⏱ N с</button>
+        <button id="bSet${i}">⚙️ Настроить</button>
+      </div>
+      <div class="set" id="nSek${i}">
+        <label>Полить на сколько секунд (1-60, общая настройка не меняется)</label>
+        <div class="two" style="grid-template-columns:1fr auto auto">
+          <input id="iSek${i}" type="number" min="1" max="60" value="5">
+          <button class="main" id="bPolN${i}">Полить</button>
+          <button id="bStop${i}">⏹ Стоп</button>
+        </div>
+      </div>
+      <div class="set" id="set${i}">
+        <label>Название горшка</label><input id="iNazv${i}" maxlength="24" placeholder="Горшок ${i + 1}">
+        <label>Вид растения</label><select id="sVid${i}">${vidy}</select>
+        <div class="two">
+          <div><label>Поливать, если ниже, %</label><input id="iMin${i}" type="number" min="0" max="100"></div>
+          <div><label>Слишком влажно, если выше, %</label><input id="iMax${i}" type="number" min="0" max="100"></div>
+        </div>
+        <label>Норма света, свтч в день (0 - не досвечивать, до 250)</label>
+        <input id="iSvet${i}" type="number" min="0" max="250">
+        <div style="margin-top:8px"><button id="bLamp${i}" disabled>💡 Проверить лампу (30 с)</button></div>
+        <div class="note">Положите датчик света под лампу этого горшка, на высоту листьев, и нажмите. Лампа загорится на 30 секунд, Uno измерит, сколько света она дает, и запомнит. Так же можно показать лампу днем, когда она сама не горит.</div>
+        <div class="two">
+          <div><label>Датчик в воздухе, %</label><input id="iCd${i}" type="number" min="0" max="100"></div>
+          <div><label>Датчик в воде, %</label><input id="iCw${i}" type="number" min="0" max="100"></div>
+        </div>
+        <div class="note">Калибровка: достаньте датчик из земли, подождите минуту и впишите его показание в воздухе, потом опустите в стакан с водой и впишите показание там. Оставьте оба поля пустыми, чтобы не пересчитывать.</div>
+        <label>Картинка</label><select id="sPic${i}">${kart}</select>
+        <div style="margin-top:12px"><button class="main" id="bSave${i}">💾 Сохранить</button></div>
+      </div>`;
+    g.appendChild(card);
+    $('bPol' + i).onclick = () => vOchered('p' + (i + 1));
+    $('bSek' + i).onclick = () => $('nSek' + i).classList.toggle('open');
+    $('bPolN' + i).onclick = () => {
+      const s = parseInt($('iSek' + i).value);
+      if (!(s >= 1 && s <= 60)) { soobshenie('Секунды: от 1 до 60'); return; }
+      vOchered('P' + (i + 1) + '=' + s);
+    };
+    $('bStop' + i).onclick = () => vOchered('x');
+    $('bLamp' + i).onclick = () => vOchered('l' + (i + 1));
+    $('bSet' + i).onclick = () => { zapolnitNastroiku(i); $('set' + i).classList.toggle('open'); };
+    $('sVid' + i).onchange = () => vybranVid(i);
+    $('bSave' + i).onclick = () => sohranitGorshok(i);
+    obnovitGorshok(i);
+  });
+}
+
+function obnovitGorshok(i) {
+  const pt = gorshki[i], p = vidimo(i);
+  if ($('plant' + i).firstElementChild.dataset.pic !== pt.picture) $('plant' + i).innerHTML = rastenie(pt.picture);
+  $('nazv' + i).textContent = pt.name || 'Горшок ' + (i + 1);
+  const s = sostoyanie(p, pt.min_pct);
+  $('plant' + i).firstElementChild.setAttribute('class', 'plant ' + s + (klapanOtkr[i] ? ' water' : ''));
+  $('krug' + i).innerHTML = krug(p, pt.min_pct, s);
+  $('txt' + i).textContent = (s === 'happy' && p > pt.max_pct) ? 'слишком влажно' : TEKST[s];
+  $('txt' + i).style.color = CVET[s];
+  $('lamp' + i).classList.toggle('on', lampi[i] === 1);
+  const normaSveta = normaGorshka(i);
+  $('sv' + i).textContent = doza[i] === null ? 'Свет: —' :
+    'Свет: ' + doza[i].toFixed(1) + ' / ' + normaSveta + ' свтч' +
+    (doza[i] >= normaSveta ? ' — норма добрана' : '');
+  $('vid' + i).textContent = VIDY[pt.plant_type].name;
+  $('kl' + i).textContent = !pt.valve_enabled ? 'клапан еще не подключен' : klapanOtkr[i] ? 'идет полив…' : '';
+  const svyaz = pt.valve_enabled && (yashchik || demoTaimer);
+  $('bPol' + i).disabled = !svyaz;
+  $('bSek' + i).disabled = !svyaz;
+  $('bLamp' + i).disabled = !(yashchik || demoTaimer);
+}
+
+// у вида растения норма света своя (из VIDY), у "Свои пороги" - та, что вписали
+function normaGorshka(i) {
+  const pt = gorshki[i], v = VIDY[pt.plant_type];
+  if (v && v.svet !== null) return v.svet;
+  return pt.svet_norm ?? 60;
+}
+
+// показание датчика с поправкой на калибровку: что человек видит на карточке
+function vidimo(i) {
+  const p = pokazaniya[i], a = gorshki[i].cal_dry, b = gorshki[i].cal_wet;
+  if (p < 0 || !(a !== null && a !== undefined && b !== null && b !== undefined && b > a)) return p;
+  return Math.max(0, Math.min(100, Math.round((p - a) * 100 / (b - a))));
+}
+
+// порог для Uno в сырых показаниях датчика: прошивка решает полив по тем же числам,
+// которые человек видит на карточке
+function porogUno(i) {
+  const pt = gorshki[i], a = pt.cal_dry, b = pt.cal_wet;
+  if (!(a !== null && a !== undefined && b !== null && b !== undefined && b > a)) return pt.min_pct;
+  return Math.max(0, Math.min(100, Math.round(a + pt.min_pct * (b - a) / 100)));
+}
+
+function zapolnitNastroiku(i) {
+  const pt = gorshki[i];
+  $('iNazv' + i).value = pt.name || '';
+  $('sVid' + i).value = pt.plant_type;
+  $('iMin' + i).value = pt.min_pct;
+  $('iMax' + i).value = pt.max_pct;
+  $('iSvet' + i).value = normaGorshka(i);
+  $('iCd' + i).value = pt.cal_dry ?? '';
+  $('iCw' + i).value = pt.cal_wet ?? '';
+  $('sPic' + i).value = pt.picture;
+  vybranVid(i, true);
+}
+
+function vybranVid(i, tolkoZamok) {
+  const v = VIDY[$('sVid' + i).value];
+  const svoi = v.min === null;
+  $('iMin' + i).disabled = !svoi;
+  $('iMax' + i).disabled = !svoi;
+  $('iSvet' + i).disabled = !svoi;
+  if (!svoi && !tolkoZamok) {
+    $('iMin' + i).value = v.min;
+    $('iMax' + i).value = v.max;
+    $('iSvet' + i).value = v.svet;
+    $('sPic' + i).value = v.pic;
+  }
+}
+
+async function sohranitGorshok(i) {
+  const vid = $('sVid' + i).value;
+  const min = parseInt($('iMin' + i).value), max = parseInt($('iMax' + i).value);
+  const svet = parseInt($('iSvet' + i).value);
+  const cd = $('iCd' + i).value.trim() === '' ? null : parseInt($('iCd' + i).value);
+  const cw = $('iCw' + i).value.trim() === '' ? null : parseInt($('iCw' + i).value);
+  if (!(min >= 0 && max <= 100 && min < max)) { soobshenie('Пороги: от 0 до 100, нижний меньше верхнего'); return; }
+  if (!(svet >= 0 && svet <= 250)) { soobshenie('Норма света: от 0 до 250 свтч'); return; }
+  if ((cd === null) !== (cw === null) || (cd !== null && !(cd >= 0 && cd <= 100 && cw > cd && cw <= 100))) {
+    soobshenie('Калибровка: оба числа от 0 до 100, в воде должно быть больше, чем в воздухе'); return; }
+  const izm = { plant_type: vid, min_pct: min, max_pct: max, picture: $('sPic' + i).value,
+                svet_norm: svet, name: $('iNazv' + i).value.trim() || null,
+                cal_dry: cd, cal_wet: cw, updated_at: new Date().toISOString() };
+  const { error } = await sb.from('pots').update(izm).eq('id', i + 1);
+  if (error) { soobshenie('Не сохранилось: ' + error.message); return; }
+  Object.assign(gorshki[i], izm);
+  obnovitGorshok(i);
+  $('set' + i).classList.remove('open');
+  soobshenie((gorshki[i].name || 'Горшок ' + (i + 1)) + ': сохранено');
+  if (yashchik) vOchered('T' + (i + 1) + '=' + porogUno(i));
+  if (yashchik) vOchered('N' + (i + 1) + '=' + svet);
+}
+
+// ===== 7. Админ: клапаны, настройки, пользователи =====
+async function pokazatAdmina() {
+  $('adminCard').classList.remove('hidden');
+  narisovatKlapany();
+  $('aUtro').value = nastroiki.chas_utro;
+  $('aVecher').value = nastroiki.chas_vecher;
+  $('aPoliv').value = nastroiki.poliv_sek;
+  $('aBak').value = nastroiki.bak_l ?? '';
+  $('aRashod').value = nastroiki.rashod_l ?? '';
+  const { data } = await sb.from('profiles').select('*').order('created_at');
+  $('lyudi').innerHTML = '';
+  (data || []).forEach(u => {
+    const r = document.createElement('div');
+    r.className = 'row';
+    const ya = u.id === profil.id;
+    // имя пришло от другого человека: вставляем через textContent, HTML в нем небезопасен
+    const imya = document.createElement('span');
+    imya.textContent = u.name || 'без имени';
+    const kn = document.createElement('button');
+    if (ya) kn.disabled = true;
+    kn.textContent = u.role === 'admin' ? 'админ → обычный' : 'сделать админом';
+    kn.onclick = async () => {
+      const { error } = await sb.from('profiles').update({ role: u.role === 'admin' ? 'user' : 'admin' }).eq('id', u.id);
+      if (error) soobshenie('Ошибка: ' + error.message); else pokazatAdmina();
+    };
+    r.append(imya, kn);
+    $('lyudi').appendChild(r);
+  });
+}
+
+function narisovatKlapany() {
+  $('klapany').innerHTML = '';
+  gorshki.forEach((pt, i) => {
+    const r = document.createElement('div');
+    r.className = 'row';
+    r.innerHTML = `<span>Клапан горшка ${i + 1}</span>
+      <button class="${pt.valve_enabled ? 'main' : ''}">${pt.valve_enabled ? 'подключен' : 'не подключен'}</button>`;
+    r.querySelector('button').onclick = async () => {
+      const novoe = !pt.valve_enabled;
+      const { error } = await sb.rpc('set_valve', { pot: i + 1, enabled: novoe });
+      if (error) { soobshenie('Ошибка: ' + error.message); return; }
+      pt.valve_enabled = novoe;
+      narisovatKlapany();
+      obnovitGorshok(i);
+      soobshenie('Клапан горшка ' + (i + 1) + (novoe ? ' подключен' : ' отключен'));
+      if (yashchik) vOchered('V' + (i + 1) + '=' + (novoe ? 1 : 0));
+    };
+    $('klapany').appendChild(r);
+  });
+}
+
+async function sohranitNastroiki() {
+  const bak = parseFloat($('aBak').value), rashod = parseFloat($('aRashod').value);
+  const izm = { chas_utro: +$('aUtro').value, chas_vecher: +$('aVecher').value,
+                poliv_sek: +$('aPoliv').value,
+                bak_l: bak > 0 ? bak : null, rashod_l: rashod > 0 ? rashod : null,
+                updated_at: new Date().toISOString() };
+  const { error } = await sb.from('settings').update(izm).eq('id', 1);
+  if (error) { soobshenie('Не сохранилось: проверьте числа (' + error.message + ')'); return; }
+  Object.assign(nastroiki, izm);
+  soobshenie('Настройки сохранены');
+  obnovitBak();
+  if (yashchik) otpravitNastroiki();
+}
+
+// пауза после полива - может менять любой пользователь
+async function sohranitPauzu() {
+  const p = parseInt($('uPauza').value);
+  if (!(p >= 1 && p <= 240)) { soobshenie('Пауза: от 1 до 240 минут'); return; }
+  const izm = { pauza_min: p, updated_at: new Date().toISOString() };
+  const { error } = await sb.from('settings').update(izm).eq('id', 1);
+  if (error) { soobshenie('Не сохранилось: ' + error.message); return; }
+  Object.assign(nastroiki, izm);
+  soobshenie('Пауза после полива: ' + p + ' мин');
+  if (yashchik) vOchered('Z=' + p);
+}
+
+// ===== 8. Bluetooth =====
+const SLUZHBA = 0xffe0, YASHCHIK = 0xffe1;
+let yashchik = null, bufer = '', demoTaimer = null, poslDannye = 0;
+let ustroistvo = null, perepodklyuchaet = false;   // для автопереподключения после разрыва
+const dekoder = new TextDecoder(), koder = new TextEncoder();
+
+// Uno узнает конец команды по паузе, поэтому отправляем по одной с паузой 0,3 с
+let ochered = [], idet = false;
+function vOchered(cmd) { ochered.push(cmd); if (!idet) razobratOchered(); }
+async function razobratOchered() {
+  idet = true;
+  while (ochered.length) {
+    const cmd = ochered.shift();
+    try { await otpravit(cmd); } catch (e) { soobshenie('Не отправилось: ' + e.message); }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  idet = false;
+}
+
+async function otpravit(tekst) {
+  if (demoTaimer) { demoKomanda(tekst); return; }
+  if (!yashchik) return;
+  const d = koder.encode(tekst);
+  if (yashchik.properties.writeWithoutResponse) await yashchik.writeValueWithoutResponse(d);
+  else await yashchik.writeValue(d);
+}
+
+// все настройки из Supabase - в Uno
+function otpravitNastroiki() {
+  gorshki.forEach((pt, i) => {
+    vOchered('T' + (i + 1) + '=' + porogUno(i));
+    vOchered('V' + (i + 1) + '=' + (pt.valve_enabled ? 1 : 0));
+    vOchered('N' + (i + 1) + '=' + normaGorshka(i));
+  });
+  vOchered('U=' + nastroiki.chas_utro);
+  vOchered('E=' + nastroiki.chas_vecher);
+  vOchered('W=' + nastroiki.poliv_sek);
+  vOchered('Z=' + nastroiki.pauza_min);
+}
+
+// время телефона - в часы СУПР: шлем только при подключении, остальное время часы идут сами
+function otpravitVremya() {
+  const n = new Date(), d = x => String(x).padStart(2, '0');
+  vOchered('M=' + d(n.getFullYear() % 100) + d(n.getMonth() + 1) + d(n.getDate()) +
+           d(n.getHours()) + d(n.getMinutes()) + d(n.getSeconds()));
+}
+
+// L,д1,д2,д3 - набранный свет горшков в десятых свтч
+// D,время,П1,П2,П3,темп,влаж,свет,К1,К2,К3,Л1,Л2,Л3,бак  или обычное сообщение
+function razobrat(stroka) {
+  if (stroka.startsWith('C,')) return;                     // подтверждение настроек
+  if (stroka.startsWith('L,')) {
+    const d = stroka.slice(2).split(',');
+    for (let i = 0; i < 3; i++) {
+      const x = parseInt(d[i]);
+      doza[i] = Number.isFinite(x) ? x / 10 : null;
+    }
+    gorshki.forEach((pt, i) => obnovitGorshok(i));
+    return;
+  }
+  if (!stroka.startsWith('D,')) { soobshenie(stroka); return; }
+  const c = stroka.split(',');
+  if (c.length < 18) return;
+  poslDannye = Date.now();
+  $('vTime').textContent = c[1];
+  for (let i = 0; i < 3; i++) {
+    pokazaniya[i] = parseInt(c[2 + i]);
+    klapanOtkr[i] = c[8 + i] === '1' ? 1 : 0;
+    lampi[i] = c[11 + i] === '1' ? 1 : 0;
+    neudachi[i] = parseInt(c[14 + i]) || 0;
+    if (klapanOtkr[i] && !bylKlapan[i]) zapissatSobytie('water', i + 1);   // клапан открылся
+    bylKlapan[i] = klapanOtkr[i];
+    if (neudachi[i] >= 3 && !bylaPolomka[i]) zapissatSobytie('polomka', i + 1);
+    bylaPolomka[i] = neudachi[i] >= 3;
+    if (gorshki[i]) obnovitGorshok(i);
+  }
+  const t = parseInt(c[5]), h = parseInt(c[6]), lux = parseInt(c[7]);
+  $('vT').textContent = t > -99 ? t + ' °C' : 'нет';
+  $('vH').textContent = h >= 0 ? h + ' %' : 'нет';
+  $('vL').textContent = lux >= 0 ? lux + ' лк' : 'нет';
+  urovenBaka = parseInt(c[17]);
+  if (urovenBaka === 0 && bylBak === 1) zapissatSobytie('bak', null);   // вода кончилась
+  bylBak = urovenBaka;
+  obnovitBak();
+  for (let i = 0; i < 3; i++) {
+    const el = $('vLamp' + (i + 1));
+    el.textContent = lampi[i] ? 'ВКЛ' : 'выкл';
+    el.className = 'pill ' + (lampi[i] ? 'on' : 'off2');
+  }
+  obnovitLogo();
+  zapisatIstoryu(t, h, lux);
+}
+
+// ===== 8а. История показаний: пишем в Supabase раз в 5 минут =====
+let poslZapis = 0;
+function zapisatIstoryu(t, h, lux) {
+  if (demoTaimer) return;                        // в демо ничего не пишем
+  const teper = Date.now();
+  if (teper - poslZapis < 300000) return;        // 5 минут
+  poslZapis = teper;
+  const kogda = new Date().toISOString();
+  const tN = t > -99 ? t : null, hN = h >= 0 ? h : null, lN = lux >= 0 ? lux : null;
+  const stroki = [];
+  for (let i = 0; i < 3; i++) {
+    if (pokazaniya[i] < 0) continue;             // нет данных - не пишем
+    stroki.push({ pot_id: i + 1, wet: vidimo(i), temp: tN, hum: hN, lux: lN, recorded_at: kogda });
+  }
+  if (stroki.length) sb.from('readings').insert(stroki).then(null, () => {});
+}
+
+// ===== 8в. Журнал событий: поливы, пустой бак, поломки - таблица events =====
+let bylKlapan = [0, 0, 0], bylBak = -1, bylaPolomka = [false, false, false];
+const VID_SOBYTIYA = { water: ['💧', 'полив'], bak: ['🚱', 'вода в баке закончилась'],
+                       polomka: ['🛠', 'полив не работает'] };
+
+function nazvGorshka(n) {
+  return n && gorshki[n - 1] ? (gorshki[n - 1].name || 'Горшок ' + n) : 'СУПР';
+}
+
+function zapissatSobytie(kind, pot) {
+  if (demoTaimer) return;                        // в демо ничего не пишем
+  const stroka = { pot_id: pot, kind, created_at: new Date().toISOString() };
+  sb.from('events').insert(stroka).then(null, () => {});
+  sobyltiya.unshift(stroka);                     // показать сразу, не дожидаясь перезагрузки
+  if (sobyltiya.length > 40) sobyltiya.pop();
+  narisovatZhurnal();
+  obnovitBak();
+}
+
+async function zagruzitZhurnal() {
+  const { data, error } = await sb.from('events').select('*')
+    .order('created_at', { ascending: false }).limit(40);
+  if (error) return;
+  sobyltiya = data || [];
+  narisovatZhurnal();
+  obnovitBak();
+}
+
+function narisovatZhurnal() {
+  const korobka = $('zhurnal');
+  if (!korobka) return;
+  korobka.innerHTML = '';
+  if (!sobyltiya.length) { korobka.innerHTML = '<div class="note">Пока тихо: событий не было.</div>'; return; }
+  sobyltiya.forEach(e => {
+    const d = new Date(e.created_at);
+    const kogda = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') +
+                  ' ' + d.getDate() + '.' + (d.getMonth() + 1);
+    const vid = VID_SOBYTIYA[e.kind] || ['', e.kind];
+    const r = document.createElement('div');
+    r.className = 'sobytie';
+    const lev = document.createElement('span');
+    lev.textContent = vid[0] + ' ' + kogda + ' · ' + nazvGorshka(e.pot_id);
+    const pr = document.createElement('span');
+    pr.className = 'note';
+    pr.textContent = vid[1];
+    r.append(lev, pr);
+    korobka.appendChild(r);
+  });
+}
+
+// прогноз бака: сколько поливов было за последние 3 дня - столько воды и уходит в день
+function dneyVody() {
+  const obem = +nastroiki?.bak_l, rashod = +nastroiki?.rashod_l || 0.2;
+  if (!(obem > 0) || !(rashod > 0)) return null;
+  const za3 = sobyltiya.filter(e => e.kind === 'water' &&
+    Date.now() - new Date(e.created_at) < 3 * 86400000).length;
+  if (!za3) return null;
+  return obem / (za3 / 3 * rashod);
+}
+
+function obnovitBak() {
+  const bak = $('vBak');
+  if (!bak) return;
+  let t = urovenBaka === 1 ? 'есть' : urovenBaka === 0 ? 'ПОДЛЕЙ ВОДЫ' : 'нет датчика';
+  const dney = dneyVody();
+  if (urovenBaka === 1 && dney !== null && dney < 365)
+    t += dney >= 1 ? ' · хватит на ~' + Math.round(dney) + ' дн.' : ' · воды почти нет';
+  bak.textContent = t;
+  bak.style.color = urovenBaka === 0 ? '#7cc7ff' : '';
+}
+
+// светофор на надписи СУПР: красный - поломка, голубой - нет воды, желтый - растение хочет пить
+let bylaTrevoga = false;
+function obnovitLogo() {
+  const logo = $('logo'), pr = $('prichina');
+  if (!yashchik && !demoTaimer) { logo.className = 'logo off'; pr.textContent = ''; bylaTrevoga = false; return; }
+  for (let i = 0; i < 3; i++) if (neudachi[i] >= 3) {
+    logo.className = 'logo krasny';
+    pr.textContent = 'полив не работает: ' + nazvGorshka(i + 1);
+    zavediTrevogu();
+    return;
+  }
+  if (urovenBaka === 0) {
+    logo.className = 'logo siny';
+    pr.textContent = 'надо подлить воды в бак';
+    zavediTrevogu();
+    return;
+  }
+  for (let i = 0; i < 3; i++) {
+    const p = vidimo(i);
+    if (p >= 0 && gorshki[i] && p < gorshki[i].min_pct) {
+      logo.className = 'logo zholty';
+      pr.textContent = nazvGorshka(i + 1) + ' хочет пить';
+      bylaTrevoga = false;
+      return;
+    }
+  }
+  logo.className = 'logo zel';
+  pr.textContent = 'всё хорошо';
+  bylaTrevoga = false;
+}
+
+// тревога: логотип пульсирует стилями, телефон один раз вибрирует
+function zavediTrevogu() {
+  if (!bylaTrevoga && navigator.vibrate) navigator.vibrate(200);
+  bylaTrevoga = true;
+}
+
+// ===== 8б. Вкладка Графики =====
+let grafPeriod = 'hour', grafMet = 'wet';
+const CVET_LINII = ['#3ddc84', '#f5c542', '#7cc7ff'];
+
+function perekluchitVkladku(gorshkiVidny) {
+  $('tabPots').classList.toggle('act', gorshkiVidny);
+  $('tabGrafik').classList.toggle('act', !gorshkiVidny);
+  $('vidPots').classList.toggle('hidden', !gorshkiVidny);
+  $('vidGrafik').classList.toggle('hidden', gorshkiVidny);
+  if (!gorshkiVidny) zagruzitGrafik();
+}
+
+// границы выбранного периода: [с, по]
+function granitsyPerioda() {
+  const kon = new Date();
+  if (grafPeriod === 'own') {
+    const ot = $('gOt').value, dok = $('gDo').value;
+    if (!ot || !dok || new Date(ot) >= new Date(dok)) { soobshenie('Укажите промежуток: «с» раньше «по»'); return null; }
+    return [new Date(ot), new Date(dok)];
+  }
+  const nach = new Date(kon);
+  if (grafPeriod === 'hour') nach.setHours(nach.getHours() - 1);
+  else if (grafPeriod === 'day') nach.setDate(nach.getDate() - 1);
+  else if (grafPeriod === 'week') nach.setDate(nach.getDate() - 7);
+  else nach.setDate(nach.getDate() - 30);
+  return [nach, kon];
+}
+
+async function zagruzitGrafik() {
+  const gran = granitsyPerioda();
+  if (!gran) return;
+  $('grafBox').innerHTML = '<div class="note">Загружаю...</div>';
+  $('legenda').innerHTML = '';
+  grafKontekst = null; polnyeTochki = [];
+  const { data, error } = await sb.from('readings')
+    .select('pot_id,wet,temp,lux,recorded_at')
+    .gte('recorded_at', gran[0].toISOString()).lte('recorded_at', gran[1].toISOString())
+    .order('recorded_at');
+  if (error) { $('grafBox').innerHTML = '<div class="note">Ошибка загрузки: ' + error.message + '</div>'; return; }
+  const karta = new Map();                      // время записи -> точка со значениями 3 горшков
+  (data || []).forEach(r => {
+    if (r.pot_id < 1 || r.pot_id > 3) return;
+    let t = karta.get(r.recorded_at);
+    if (!t) { t = { d: new Date(r.recorded_at), v: [null, null, null] }; karta.set(r.recorded_at, t); }
+    t.v[r.pot_id - 1] = r[grafMet];
+  });
+  let tochki = [...karta.values()].sort((a, b) => a.d - b.d);
+  if (!tochki.length) {
+    $('grafBox').innerHTML = '<div class="note">Пока нет записей за этот промежуток. История копится, пока страница открыта и подключена к СУПР.</div>';
+    return;
+  }
+  polnyeTochki = tochki;                        // для CSV: все точки без усреднения
+  // поливы за промежуток - нарисуем капли на графике
+  const { data: polivy } = await sb.from('events').select('created_at')
+    .eq('kind', 'water')
+    .gte('created_at', gran[0].toISOString()).lte('created_at', gran[1].toISOString())
+    .order('created_at');
+  if (tochki.length > 600) tochki = usrednit(tochki, 600);
+  $('grafBox').innerHTML = risovatGrafik(tochki, (polivy || []).map(e => new Date(e.created_at)));
+  $('legenda').innerHTML = [0, 1, 2].map(i =>
+    `<span><i style="background:${CVET_LINII[i]}"></i>${nazvGorshka(i + 1)}</span>`).join('');
+}
+
+// если точек много (месяц) - усредняем, чтобы график рисовался быстро
+function usrednit(tochki, maks) {
+  const k = Math.ceil(tochki.length / maks), itog = [];
+  for (let i = 0; i < tochki.length; i += k) {
+    const gr = tochki.slice(i, i + k), v = [null, null, null];
+    for (let j = 0; j < 3; j++) {
+      const xs = gr.map(t => t.v[j]).filter(x => x !== null && x !== undefined);
+      if (xs.length) v[j] = xs.reduce((a, b) => a + b, 0) / xs.length;
+    }
+    itog.push({ d: gr[Math.floor(gr.length / 2)].d, v });
+  }
+  return itog;
+}
+
+// график: SVG с сеткой, подписями времени и линией на каждый горшок
+function risovatGrafik(tochki, metki = []) {
+  const W = 1000, H = 400, levo = 56, pravo = 14, verh = 14, niz = 34;
+  const shir = W - levo - pravo, vys = H - verh - niz;
+  const vse = tochki.flatMap(t => t.v.filter(x => x !== null && x !== undefined));
+  let min, maks;
+  if (grafMet === 'wet') { min = 0; maks = 100; }
+  else if (!vse.length) return '<div class="note">Нет данных для этой метрики.</div>';
+  else {
+    min = Math.min(...vse); maks = Math.max(...vse);
+    if (min === maks) { min -= 1; maks += 1; }
+    const zapas = (maks - min) * 0.1; min -= zapas; maks += zapas;
+  }
+  const t0 = tochki[0].d.getTime(), t1 = tochki[tochki.length - 1].d.getTime();
+  const X = t => levo + (t - t0) / (t1 - t0 || 1) * shir;
+  const Y = z => verh + (1 - (z - min) / (maks - min)) * vys;
+  grafKontekst = { tochki, levo, pravo, W, H, t0, t1, X, Y };   // для подсказки под мышью
+  let s = '';
+  for (let i = 0; i <= 5; i++) {                // сетка и подписи по вертикали
+    const z = min + (maks - min) * i / 5, y = Y(z);
+    s += `<line x1="${levo}" y1="${y}" x2="${W - pravo}" y2="${y}" stroke="#252b28"/>`;
+    s += `<text x="${levo - 8}" y="${y + 4}" text-anchor="end" font-size="12" fill="#8a958e">${Math.round(z * 10) / 10}</text>`;
+  }
+  const zaSutki = (t1 - t0) <= 3 * 86400000;    // до 3 суток подписываем часы, дальше - даты
+  const fmt = d => zaSutki
+    ? String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+    : d.getDate() + '.' + (d.getMonth() + 1);
+  const shag = Math.max(1, Math.ceil(tochki.length / 6));
+  tochki.forEach((t, i) => {
+    if (i % shag) return;
+    s += `<text x="${X(t.d.getTime())}" y="${H - 10}" text-anchor="middle" font-size="12" fill="#8a958e">${fmt(t.d)}</text>`;
+  });
+  for (let g = 0; g < 3; g++) {                 // линия на каждый горшок
+    let put = '', idet = false;
+    tochki.forEach(t => {
+      const z = t.v[g];
+      if (z === null || z === undefined) { idet = false; return; }
+      put += (idet ? ' L' : ' M') + X(t.d.getTime()).toFixed(1) + ' ' + Y(z).toFixed(1);
+      idet = true;
+    });
+    if (put) s += `<path d="${put}" fill="none" stroke="${CVET_LINII[g]}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  metki.forEach(t => {                          // капля и пунктир - в это время был полив
+    const x = X(t.getTime());
+    if (x < levo || x > W - pravo) return;
+    s += `<line x1="${x}" y1="${verh}" x2="${x}" y2="${H - niz}" stroke="#7cc7ff" stroke-dasharray="2 5" opacity=".55"/>`;
+    s += `<text x="${x}" y="${verh + 12}" text-anchor="middle" font-size="13">💧</text>`;
+  });
+  s += `<line id="gKursor" y1="${verh}" y2="${H - niz}" stroke="#8a958e" stroke-width="1" opacity="0"/>`;
+  for (let g = 0; g < 3; g++)
+    s += `<circle id="gKr${g}" r="4" fill="${CVET_LINII[g]}" stroke="#0b0d0c" stroke-width="1.5" opacity="0"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${s}</svg>`;
+}
+
+// подсказка на графике: ближайшая к курсору точка и значения всех горшков
+function dvigKursora(e) {
+  if (!grafKontekst) return;
+  const svg = $('grafBox').querySelector('svg');
+  if (!svg) return;
+  const ramka = svg.getBoundingClientRect();
+  if (!ramka.width) return;
+  const k = grafKontekst;
+  const xPx = (e.clientX - ramka.left) * (k.W / ramka.width);
+  if (xPx < k.levo || xPx > k.W - k.pravo) { spryatKursor(); return; }
+  const t = k.t0 + (xPx - k.levo) / (k.W - k.levo - k.pravo || 1) * (k.t1 - k.t0);
+  let blizh = 0;
+  for (let i = 1; i < k.tochki.length; i++)
+    if (Math.abs(k.tochki[i].d - t) < Math.abs(k.tochki[blizh].d - t)) blizh = i;
+  const tochka = k.tochki[blizh], x = k.X(tochka.d.getTime());
+  const lin = $('gKursor');
+  if (lin) { lin.setAttribute('x1', x); lin.setAttribute('x2', x); lin.setAttribute('opacity', '.5'); }
+  const ed = { wet: '%', temp: ' °C', lux: ' лк' }[grafMet] || '';
+  let stroka = '';
+  for (let g = 0; g < 3; g++) {
+    const kr = $('gKr' + g), z = tochka.v[g];
+    if (z === null || z === undefined) { if (kr) kr.setAttribute('opacity', '0'); continue; }
+    if (kr) { kr.setAttribute('cx', x); kr.setAttribute('cy', k.Y(z)); kr.setAttribute('opacity', '1'); }
+    stroka += `<div><i style="background:${CVET_LINII[g]}"></i>${nazvGorshka(g + 1)}: <b>${Math.round(z * 10) / 10}${ed}</b></div>`;
+  }
+  let tul = $('grafTul');
+  if (!tul) {
+    tul = document.createElement('div');
+    tul.id = 'grafTul'; tul.className = 'tul';
+    $('grafBox').appendChild(tul);
+  }
+  const d = tochka.d;
+  const podp = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') +
+               ' ' + d.getDate() + '.' + (d.getMonth() + 1);
+  tul.innerHTML = '<b>' + podp + '</b>' + stroka;
+  const polozh = (x / k.W) * ramka.width;
+  tul.style.left = Math.max(70, Math.min(ramka.width - 70, polozh)) + 'px';
+  tul.style.top = '4px';
+}
+
+function spryatKursor() {
+  const lin = $('gKursor'); if (lin) lin.setAttribute('opacity', '0');
+  for (let g = 0; g < 3; g++) { const kr = $('gKr' + g); if (kr) kr.setAttribute('opacity', '0'); }
+  const tul = $('grafTul'); if (tul) tul.remove();
+}
+
+// скачать данные графика файлом CSV (открывается в Excel: разделитель - ;)
+function skachatCsv() {
+  if (!polnyeTochki.length) { soobshenie('Сначала постройте график - CSV соберется из его данных'); return; }
+  const ed = { wet: '%', temp: '°C', lux: 'лк' }[grafMet] || '';
+  let csv = '\uFEFFвремя;' + [1, 2, 3].map(n => nazvGorshka(n) + ' ' + grafMet + ed + ';').join('') + '\r\n';
+  polnyeTochki.forEach(t => {
+    csv += t.d.toLocaleString('ru-RU') + ';';
+    for (let g = 0; g < 3; g++) csv += (t.v[g] ?? '') + ';';
+    csv += '\r\n';
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'supr-' + grafMet + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  soobshenie('CSV сохранен: ' + polnyeTochki.length + ' точек');
+}
+
+document.querySelectorAll('#periody [data-per]').forEach(b => b.onclick = () => {
+  grafPeriod = b.dataset.per;
+  document.querySelectorAll('#periody [data-per]').forEach(x => x.classList.toggle('act', x === b));
+  $('svoyBlock').classList.toggle('hidden', grafPeriod !== 'own');
+  zagruzitGrafik();
+});
+document.querySelectorAll('#metriki [data-met]').forEach(b => b.onclick = () => {
+  grafMet = b.dataset.met;
+  document.querySelectorAll('#metriki [data-met]').forEach(x => x.classList.toggle('act', x === b));
+  zagruzitGrafik();
+});
+$('bGrafik').onclick = () => zagruzitGrafik();
+$('tabPots').onclick = () => perekluchitVkladku(true);
+$('tabGrafik').onclick = () => perekluchitVkladku(false);
+// открытая вкладка графиков обновляется сама раз в полминуты, журнал событий - раз в минуту
+setInterval(() => { if (profil && !$('vidGrafik').classList.contains('hidden')) zagruzitGrafik(); }, 30000);
+setInterval(() => { if (profil) zagruzitZhurnal(); }, 60000);
+
+function prishlo(e) {
+  bufer += dekoder.decode(e.target.value, { stream: true });
+  let n;
+  while ((n = bufer.indexOf('\n')) >= 0) {
+    const stroka = bufer.slice(0, n).replace('\r', '');
+    bufer = bufer.slice(n + 1);
+    if (stroka.length) razobrat(stroka);
+  }
+}
+
+async function podklyuchit() {
+  if (!navigator.bluetooth) {
+    $('status').innerHTML = '<b>Этот браузер не умеет Bluetooth.</b> Откройте страницу в Chrome.';
+    return;
+  }
+  try {
+    ostanovitDemo();
+    $('status').textContent = 'Ищу модуль...';
+    const ustr = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [SLUZHBA] });
+    ustr.addEventListener('gattserverdisconnected', otklyuchilsya);
+    const server = await ustr.gatt.connect();
+    const sluzhba = await server.getPrimaryService(SLUZHBA);
+    yashchik = await sluzhba.getCharacteristic(YASHCHIK);
+    await yashchik.startNotifications();
+    yashchik.addEventListener('characteristicvaluechanged', prishlo);
+    ustroistvo = ustr;                                    // запомнить для автопереподключения
+    $('status').innerHTML = 'Подключено: <b>' + (ustr.name || 'модуль') + '</b>';
+    obnovitLogo();
+    gorshki.forEach((pt, i) => obnovitGorshok(i));
+    otpravitNastroiki();
+    otpravitVremya();
+    soobshenie('Настройки и время отправлены в СУПР');
+  } catch (e) {
+    yashchik = null;
+    $('status').textContent = 'Не получилось: ' + e.message;
+  }
+}
+
+async function otklyuchilsya() {
+  yashchik = null;
+  obnovitLogo();
+  gorshki.forEach((pt, i) => obnovitGorshok(i));
+  if (!ustroistvo || perepodklyuchaet) {
+    $('status').textContent = 'Связь потеряна. Нажмите «Подключить СУПР» еще раз.';
+    return;
+  }
+  // устройство уже выбрано: пробуем переподключиться сами, без выбора из списка
+  perepodklyuchaet = true;
+  for (let pop = 1; pop <= 4; pop++) {
+    $('status').textContent = 'Связь потеряна. Переподключаюсь, попытка ' + pop + ' из 4...';
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const server = await ustroistvo.gatt.connect();
+      const sluzhba = await server.getPrimaryService(SLUZHBA);
+      yashchik = await sluzhba.getCharacteristic(YASHCHIK);
+      await yashchik.startNotifications();
+      yashchik.addEventListener('characteristicvaluechanged', prishlo);
+      $('status').innerHTML = 'Переподключено: <b>' + (ustroistvo.name || 'модуль') + '</b>';
+      otpravitNastroiki();
+      otpravitVremya();
+      soobshenie('Связь восстановилась сама');
+      break;
+    } catch (e) { /* модуль еще не отвечает - попробуем еще раз */ }
+  }
+  perepodklyuchaet = false;
+  if (!yashchik) $('status').textContent = 'Связь потеряна. Нажмите «Подключить СУПР» еще раз.';
+  obnovitLogo();
+  gorshki.forEach((pt, i) => obnovitGorshok(i));
+}
+
+// раз в секунду: приходят ли данные от СУПР? Цветная точка - качество связи
+setInterval(() => {
+  if (!yashchik) return;
+  const sek = Math.round((Date.now() - poslDannye) / 1000);
+  if (!poslDannye || sek > 6)
+    $('status').innerHTML = '<span class="dot" style="background:var(--red)"></span>Подключено, но <b>данные от СУПР не приходят</b>: проверьте провод с вывода 11 на RXD модуля и что в Uno загружена версия 9.';
+  else
+    $('status').innerHTML = '<span class="dot" style="background:' +
+      (sek <= 3 ? 'var(--green)' : 'var(--yellow)') + '"></span>Подключено · данные получены ' + sek + ' с назад';
+}, 1000);
+
+// ===== 9. Демо: придуманные данные, чтобы увидеть все состояния растений =====
+let demoP = [80, 40, 12], demoPoliv = -1, demoDo = 0;
+let demoDoza = [0, 0, 0];                       // набранный свет в демо, свтч
+function zapustitDemo() {
+  if (demoTaimer) { ostanovitDemo(); return; }
+  demoP = [80, 40, 12];
+  demoDoza = [0, 1, 2].map(i => Math.round(normaGorshka(i) * 0.6 * 10) / 10);
+  obnovitLogo();
+  $('status').innerHTML = '<b>Демо:</b> данные придуманы, Uno не подключена.';
+  $('bDemo').textContent = 'Стоп демо';
+  demoTaimer = setInterval(() => {
+    if (demoPoliv >= 0 && Date.now() > demoDo) { demoP[demoPoliv] = 85; demoPoliv = -1; }
+    demoP = demoP.map(x => Math.max(3, x - 1.5));
+    const k = [0, 1, 2].map(i => i === demoPoliv ? 1 : 0).join(',');
+    demoDoza = demoDoza.map((x, i) => Math.min(normaGorshka(i), x + 0.1));  // свет "идет"
+    const lamps = demoDoza.map((x, i) => (x < normaGorshka(i) || (i === demoLampa && Date.now() < demoLampaDo)) ? 1 : 0);
+    const d = new Date();
+    const vr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    razobrat(`D,${vr},${demoP.map(Math.round).join(',')},23,41,-1,${k},${lamps.join(',')},0,0,0,1`);
+    razobrat(`L,${demoDoza.map(x => Math.round(x * 10)).join(',')}`);
+  }, 2000);
+  gorshki.forEach((pt, i) => obnovitGorshok(i));
+}
+let demoLampa = -1, demoLampaDo = 0;            // проверка лампы в демо
+function demoKomanda(t) {
+  if (t === 'x') { demoPoliv = -1; soobshenie('Демо: полив остановлен'); return; }
+  const l = /^l([1-3])$/.exec(t);
+  if (l) { demoLampa = l[1] - 1; demoLampaDo = Date.now() + 30000; soobshenie('Демо: лампа горшка ' + l[1] + ' горит 30 с, дает 6000 лк'); return; }
+  const n = /^p([1-3])$/.exec(t), d = /^P([1-3])=(\d{1,2})$/.exec(t);
+  if (d && demoPoliv < 0) {
+    demoPoliv = d[1] - 1; demoDo = Date.now() + +d[2] * 1000;
+    soobshenie('Демо: полив горшка ' + d[1] + ' на ' + d[2] + ' с');
+  } else if (n && demoPoliv < 0) { demoPoliv = n[1] - 1; demoDo = Date.now() + 4000; soobshenie('Демо: полив горшка ' + n[1]); }
+}
+function ostanovitDemo() {
+  if (!demoTaimer) return;
+  clearInterval(demoTaimer); demoTaimer = null;
+  $('bDemo').textContent = 'Демо';
+  obnovitLogo();
+  $('status').textContent = 'Не подключено. Нажмите «Подключить СУПР» и выберите HC-06.';
+  pokazaniya = [-1, -1, -1];
+  doza = [null, null, null];
+  lampi = [0, 0, 0];
+  gorshki.forEach((pt, i) => obnovitGorshok(i));
+}
+
+// ===== 10. Кнопки =====
+$('tVhod').onclick = () => pokazatReg(false);
+$('tReg').onclick = () => pokazatReg(true);
+$('bVoiti').onclick = voitiIliZaregistrirovat;
+$('zabil').onclick = zabytParol;
+$('inParol').addEventListener('keydown', e => { if (e.key === 'Enter') voitiIliZaregistrirovat(); });
+$('bVyiti').onclick = () => sb.auth.signOut();
+$('bConnect').onclick = podklyuchit;
+$('bDemo').onclick = zapustitDemo;
+$('bNastr').onclick = sohranitNastroiki;
+$('bPauza').onclick = sohranitPauzu;
+$('bCsv').onclick = skachatCsv;
+$('grafBox').addEventListener('pointermove', dvigKursora);
+$('grafBox').addEventListener('pointerleave', spryatKursor);
+</script>
+</body>
+</html>
